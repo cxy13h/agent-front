@@ -1,18 +1,13 @@
-<!--<template>-->
+<!-- <template>-->
 <!--  <div class="app">-->
-<!--    &lt;!&ndash; 主体内容区 &ndash;&gt;-->
 <!--    <div class="main-content">-->
-<!--      &lt;!&ndash; 左侧：AI回复 &ndash;&gt;-->
 <!--      <div class="panel">-->
-<!--        <div class="panel-header">AI回复</div>-->
+<!--        <div class="panel-header">AI 回复 (流式思想过程)</div>-->
 <!--        <div class="messages">-->
-<!--          <div v-for="(msg, i) in aiMessages" :key="i" class="message ai-msg">-->
-<!--            {{ msg }}-->
-<!--          </div>-->
+<!--          <div v-for="(msg, i) in aiMessages" :key="i" class="message ai-msg" v-html="msg"></div>-->
 <!--        </div>-->
 <!--      </div>-->
 
-<!--      &lt;!&ndash; 右侧：用户输入 &ndash;&gt;-->
 <!--      <div class="panel">-->
 <!--        <div class="panel-header">用户输入</div>-->
 <!--        <div class="messages">-->
@@ -23,7 +18,6 @@
 <!--      </div>-->
 <!--    </div>-->
 
-<!--    &lt;!&ndash; 底部输入区 &ndash;&gt;-->
 <!--    <div class="input-area">-->
 <!--      <input-->
 <!--          v-model="currentInput"-->
@@ -32,7 +26,7 @@
 <!--          :disabled="isLoading"-->
 <!--      />-->
 <!--      <button @click="sendMessage" :disabled="!currentInput.trim() || isLoading">-->
-<!--        {{ isLoading ? '发送中...' : '发送' }}-->
+<!--        {{ isLoading ? '生成中...' : '发送' }}-->
 <!--      </button>-->
 <!--    </div>-->
 <!--  </div>-->
@@ -40,6 +34,7 @@
 
 <!--<script setup>-->
 <!--import { ref, onMounted } from 'vue'-->
+<!--import { marked } from 'marked'; // Import marked for Markdown rendering-->
 
 <!--const currentInput = ref('')-->
 <!--const userMessages = ref([])-->
@@ -48,55 +43,74 @@
 <!--const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)-->
 
 <!--const sendMessage = async () => {-->
-<!--  if (!currentInput.value.trim() || isLoading.value) return-->
+<!--  if (!currentInput.value.trim() || isLoading.value) return;-->
 
-<!--  const userInput = currentInput.value-->
-<!--  userMessages.value.push(userInput)-->
-<!--  currentInput.value = ''-->
-<!--  isLoading.value = true-->
+<!--  const userInput = currentInput.value;-->
+<!--  userMessages.value.push(userInput);-->
+<!--  currentInput.value = '';-->
+<!--  isLoading.value = true;-->
 
 <!--  try {-->
-<!--    const response = await fetch('http://localhost:5000/api/chat', {-->
+<!--    const response = await fetch('http://101.126.145.194:5000/api/chat', {-->
 <!--      method: 'POST',-->
 <!--      headers: { 'Content-Type': 'application/json' },-->
-<!--      body: JSON.stringify({-->
-<!--        message: userInput,-->
-<!--        session_id: sessionId.value-->
-<!--      })-->
-<!--    })-->
+<!--      body: JSON.stringify({ message: userInput, session_id: sessionId.value }),-->
+<!--    });-->
 
-<!--    if (!response.ok) throw new Error('请求失败')-->
+<!--    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);-->
 
-<!--    const reader = response.body.getReader()-->
-<!--    const decoder = new TextDecoder()-->
-<!--    let aiResponse = ''-->
-
-<!--    aiMessages.value.push('')-->
-<!--    const currentIndex = aiMessages.value.length - 1-->
-
+<!--    const reader = response.body.getReader();-->
+<!--    const decoder = new TextDecoder();-->
+<!--    let buffer = '';-->
 <!--    while (true) {-->
-<!--      const { done, value } = await reader.read()-->
-<!--      if (done) break-->
+<!--      const { value, done: readerDone } = await reader.read();-->
+<!--      if (readerDone) {-->
+<!--        // 处理可能遗留在缓冲区的最后一部分数据-->
+<!--        if (buffer) tryParse(buffer);-->
+<!--        break;-->
+<!--      }-->
 
-<!--      const chunk = decoder.decode(value, { stream: true })-->
-<!--      aiResponse += chunk-->
-<!--      aiMessages.value[currentIndex] = aiResponse-->
+<!--      const chunk = decoder.decode(value, { stream: true });-->
+<!--      buffer += chunk;-->
+
+<!--      const parts = buffer.split('\n');-->
+<!--      buffer = parts.pop() || ''; // 将不完整的部分放回缓冲区-->
+
+<!--      for (const part of parts) {-->
+<!--        tryParse(part);-->
+<!--      }-->
 <!--    }-->
-<!--  } catch (error) {-->
-<!--    console.error('发送失败:', error)-->
-<!--    aiMessages.value.push('抱歉，发生了错误，请稍后重试。')-->
-<!--  } finally {-->
-<!--    isLoading.value = false-->
-<!--  }-->
-<!--}-->
 
-<!--// 初始化时显示会话ID（可选）-->
+<!--  } catch (error) {-->
+<!--    console.error('Chat failed:', error);-->
+<!--    aiMessages.value[currentIndex] = '抱歉，发生了错误，请稍后重试。';-->
+<!--  } finally {-->
+<!--    isLoading.value = false;-->
+<!--  }-->
+<!--};-->
+<!--// 解析并更新数据的辅助函数-->
+<!--function tryParse(jsonString) {-->
+<!--  if (!jsonString) return;-->
+<!--  try {-->
+<!--    let parsed = JSON.parse(jsonString);-->
+<!--  } catch (e) {-->
+<!--    console.error('JSON 解析失败:', jsonString, e);-->
+<!--  }-->
+<!--};-->
 <!--onMounted(() => {-->
-<!--  console.log('会话ID:', sessionId.value)-->
-<!--})-->
+<!--  console.log('Session ID:', sessionId.value);-->
+<!--});-->
 <!--</script>-->
 
 <!--<style scoped>-->
+<!--/* Reset some default styles */-->
+<!--:global(body, html) {-->
+<!--  margin: 0;-->
+<!--  padding: 0;-->
+<!--  height: 100%;-->
+<!--  overflow: hidden;-->
+<!--}-->
+
 <!--.app {-->
 <!--  position: fixed;-->
 <!--  top: 0;-->
@@ -134,7 +148,7 @@
 <!--  padding: 16px 20px;-->
 <!--  background: #f8f9fa;-->
 <!--  border-bottom: 1px solid #ddd;-->
-<!--  font-weight: 500;-->
+<!--  font-weight: 600;-->
 <!--  color: #333;-->
 <!--}-->
 
@@ -142,21 +156,52 @@
 <!--  flex: 1;-->
 <!--  overflow-y: auto;-->
 <!--  padding: 20px;-->
-<!--  padding-bottom: 80px; /* 为固定的输入框留出空间 */-->
 <!--}-->
 
 <!--.message {-->
 <!--  margin-bottom: 12px;-->
 <!--  padding: 10px 14px;-->
-<!--  border-radius: 6px;-->
+<!--  border-radius: 8px;-->
 <!--  word-break: break-word;-->
-<!--  white-space: pre-wrap; /* 保留换行和空格 */-->
+<!--  white-space: pre-wrap;-->
+<!--  line-height: 1.6;-->
 <!--}-->
 
 <!--.ai-msg {-->
-<!--  background: #f3e5f5;-->
-<!--  color: #6a1b9a;-->
+<!--  background: #f7f7f7;-->
+<!--  border: 1px solid #e5e5e5;-->
+<!--  color: #333;-->
 <!--}-->
+
+<!--/* Styles for rendered markdown content inside ai-msg */-->
+<!--.ai-msg :deep(p) {-->
+<!--  margin: 0 0 8px 0;-->
+<!--}-->
+<!--.ai-msg :deep(p:last-child) {-->
+<!--  margin-bottom: 0;-->
+<!--}-->
+<!--.ai-msg :deep(strong) {-->
+<!--    color: #6a1b9a;-->
+<!--}-->
+<!--.ai-msg :deep(pre) {-->
+<!--    background-color: #eef1f3;-->
+<!--    padding: 12px;-->
+<!--    border-radius: 4px;-->
+<!--    white-space: pre-wrap;-->
+<!--    word-break: break-all;-->
+<!--}-->
+<!--.ai-msg :deep(code) {-->
+<!--    font-family: 'Courier New', Courier, monospace;-->
+<!--    background-color: #eef1f3;-->
+<!--    padding: 2px 4px;-->
+<!--    border-radius: 3px;-->
+<!--    font-size: 0.9em;-->
+<!--}-->
+<!--.ai-msg :deep(pre code) {-->
+<!--    padding: 0;-->
+<!--    background-color: transparent;-->
+<!--}-->
+
 
 <!--.user-msg {-->
 <!--  background: #e3f2fd;-->
@@ -164,17 +209,12 @@
 <!--}-->
 
 <!--.input-area {-->
-<!--  position: fixed;-->
-<!--  bottom: 0;-->
-<!--  left: 0;-->
-<!--  right: 0;-->
 <!--  border-top: 1px solid #ddd;-->
 <!--  background: white;-->
 <!--  padding: 16px 20px;-->
 <!--  display: flex;-->
 <!--  gap: 12px;-->
-<!--  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);-->
-<!--  z-index: 100;-->
+<!--  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.07);-->
 <!--}-->
 
 <!--.input-area input {-->
@@ -188,6 +228,7 @@
 
 <!--.input-area input:focus {-->
 <!--  border-color: #1565c0;-->
+<!--  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);-->
 <!--}-->
 
 <!--.input-area button {-->
@@ -199,6 +240,7 @@
 <!--  font-size: 15px;-->
 <!--  cursor: pointer;-->
 <!--  white-space: nowrap;-->
+<!--  transition: background-color 0.2s;-->
 <!--}-->
 
 <!--.input-area button:hover:not(:disabled) {-->
@@ -223,23 +265,19 @@
 <!--  background: #bbb;-->
 <!--  border-radius: 3px;-->
 <!--}-->
+
 <!--</style>-->
 
 <template>
   <div class="app">
-    <!-- 主体内容区 -->
     <div class="main-content">
-      <!-- 左侧：AI回复 -->
       <div class="panel">
-        <div class="panel-header">AI回复</div>
+        <div class="panel-header">AI 回复 (流式思想过程)</div>
         <div class="messages">
-          <div v-for="(msg, i) in aiMessages" :key="i" class="message ai-msg">
-            {{ msg }}
-          </div>
+          <div v-for="(msg, i) in aiMessages" :key="i" class="message ai-msg" v-html="msg"></div>
         </div>
       </div>
 
-      <!-- 右侧：用户输入 -->
       <div class="panel">
         <div class="panel-header">用户输入</div>
         <div class="messages">
@@ -250,7 +288,6 @@
       </div>
     </div>
 
-    <!-- 底部输入区 -->
     <div class="input-area">
       <input
           v-model="currentInput"
@@ -259,7 +296,7 @@
           :disabled="isLoading"
       />
       <button @click="sendMessage" :disabled="!currentInput.trim() || isLoading">
-        {{ isLoading ? '发送中...' : '发送' }}
+        {{ isLoading ? '生成中...' : '发送' }}
       </button>
     </div>
   </div>
@@ -267,109 +304,167 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { marked } from 'marked'; // 导入 marked 用于 Markdown 渲染
 
-const currentInput = ref('')
-const userMessages = ref([])
-const aiMessages = ref([])
-const isLoading = ref(false)
-const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+const currentInput = ref('') // 用户当前输入
+const userMessages = ref([]) // 存储用户消息的数组
+const aiMessages = ref([]) // 存储 AI 消息的数组
+const isLoading = ref(false) // 控制加载状态
+const sessionId = ref(`session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`) // 会话 ID
 
+// 用于追踪当前正在接收内容的 AI 消息索引
+let currentAiMessageIndex = -1;
+// 用于追踪当前正在接收的 key 类型 (e.g., 'state', 'content')
+let currentKeyType = '';
+
+// 发送消息函数
 const sendMessage = async () => {
-  if (!currentInput.value.trim() || isLoading.value) return
+  if (!currentInput.value.trim() || isLoading.value) return;
 
-  const userInput = currentInput.value
-  userMessages.value.push(userInput)
-  currentInput.value = ''
-  isLoading.value = true
+  const userInput = currentInput.value;
+  userMessages.value.push(userInput); // 将用户输入添加到用户消息列表
+  currentInput.value = ''; // 清空输入框
+  isLoading.value = true; // 设置加载状态为 true
 
-  // 添加空的AI消息
-  aiMessages.value.push('')
-  const currentIndex = aiMessages.value.length - 1
-  let currentContent = ''
+  // 每次发送新消息时，为 AI 消息创建一个新的占位符，并更新索引
+  aiMessages.value.push('');
+  currentAiMessageIndex = aiMessages.value.length - 1;
+  currentKeyType = ''; // 重置当前 key 类型
 
   try {
-    const response = await fetch('http://localhost:5000/api/chat', {
+    const response = await fetch('http://101.126.145.194:5000/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: userInput,
-        session_id: sessionId.value
-      })
-    })
+      body: JSON.stringify({ message: userInput, session_id: sessionId.value }),
+    });
 
-    if (!response.ok) throw new Error('请求失败')
+    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = ''; // 缓冲区用于存储不完整的 JSON 字符串
 
     while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+      const { value, done: readerDone } = await reader.read();
+      if (readerDone) {
+        // 处理可能遗留在缓冲区的最后一部分数据
+        if (buffer) tryParse(buffer);
+        break;
+      }
 
-      buffer += decoder.decode(value, { stream: true })
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
 
-      // 按行分割处理事件
-      const lines = buffer.split('\n')
-      buffer = lines.pop() // 保留最后一个可能不完整的行
+      // 按换行符分割，处理完整的 JSON 字符串
+      const parts = buffer.split('\n');
+      buffer = parts.pop() || ''; // 将不完整的部分放回缓冲区
 
-      for (const line of lines) {
-        if (!line.trim()) continue
-
-        try {
-          const event = JSON.parse(line)
-
-          // 处理不同类型的事件
-          if (event.type === 'value_chunk' && event.key === 'content') {
-            // 累积内容块
-            currentContent += event.content
-
-            // 处理内容中的JSON，提取实际文本
-            if (currentContent.startsWith('{') || currentContent.startsWith('"')) {
-              try {
-                const parsed = JSON.parse(currentContent)
-                if (typeof parsed === 'string') {
-                  aiMessages.value[currentIndex] = parsed
-                } else if (parsed.ThinkTool) {
-                  aiMessages.value[currentIndex] = `[思考工具: ${parsed.ThinkTool}] ${parsed.ThinkInput}`
-                }
-              } catch {
-                // 如果解析失败，直接显示原始内容
-                aiMessages.value[currentIndex] = currentContent
-              }
-            } else {
-              aiMessages.value[currentIndex] = currentContent
-            }
-          } else if (event.type === 'value_complete' && event.key === 'content') {
-            // 一个完整的值结束，重置当前内容
-            currentContent = ''
-          } else if (event.type === 'tool_executed') {
-            // 工具执行完成
-            aiMessages.value[currentIndex] += `\n[工具 ${event.tool_name} 执行结果: ${event.observation}]\n`
-          } else if (event.type === 'waiting_for_user') {
-            // 等待用户输入
-            aiMessages.value[currentIndex] += '\n[等待用户回复...]'
-          }
-        } catch (e) {
-          console.error('解析事件失败:', e, line)
-        }
+      for (const part of parts) {
+        tryParse(part); // 解析每个完整的 JSON 字符串
       }
     }
+
   } catch (error) {
-    console.error('发送失败:', error)
-    aiMessages.value[currentIndex] = '抱歉，发生了错误，请稍后重试。'
+    console.error('Chat failed:', error);
+    // 如果发生错误，更新当前 AI 消息为错误提示
+    aiMessages.value[currentAiMessageIndex] = '抱歉，发生了错误，请稍后重试。';
   } finally {
-    isLoading.value = false
+    isLoading.value = false; // 无论成功或失败，都设置加载状态为 false
+  }
+};
+// 解析并更新数据的辅助函数
+function tryParse(jsonString) {
+  if (!jsonString) return;
+  try {
+    let parsed = JSON.parse(jsonString);
+    console.log(parsed);
+    if (parsed.type === 'key_complete') {
+      // 如果是 key_complete 类型，设置当前 key 类型，并准备接收后续的 value_chunk
+      currentKeyType = parsed.key;
+      // 在新的 key_complete 开始时，添加一个新行，并用粗体显示 key
+      if (aiMessages.value[currentAiMessageIndex]) {
+        aiMessages.value[currentAiMessageIndex] += '\n\n';
+      }
+      aiMessages.value[currentAiMessageIndex] += `**${parsed.key}:** `;
+    } else if (parsed.type === 'value_chunk') {
+      // 如果是 value_chunk 类型，追加内容到当前 AI 消息
+      // 确保有当前 AI 消息索引并且有 key 类型被设置
+      if (currentAiMessageIndex !== -1 && currentKeyType) {
+        // 移除 content 值中的引号
+        let contentWithoutQuotes = parsed.content.replace(/^"|"$/g, '');
+        // *** 关键修改：将 JSON 编码的 \\n 替换为实际的 \n ***
+        contentWithoutQuotes = contentWithoutQuotes.replace(/\\n/g, '\n'); //
+        aiMessages.value[currentAiMessageIndex] += contentWithoutQuotes;
+      }
+    } else if (parsed.type === 'tool_executed') {
+      // 如果是 tool_executed 类型，直接显示 observation 的值
+      if (currentAiMessageIndex !== -1) {
+        if (aiMessages.value[currentAiMessageIndex]) {
+          aiMessages.value[currentAiMessageIndex] += '\n\n';
+        }
+        aiMessages.value[currentAiMessageIndex] += `**Tool Executed Observation:** \n\n ${parsed.observation}`;
+      }
+    }
+    // 使用 marked.js 渲染 Markdown
+    aiMessages.value[currentAiMessageIndex] = marked.parse(aiMessages.value[currentAiMessageIndex]);
+
+  } catch (e) {
+    console.error('JSON 解析失败:', jsonString, e);
   }
 }
+// // 解析并更新数据的辅助函数
+// function tryParse(jsonString) {
+//   if (!jsonString) return;
+//   try {
+//     let parsed = JSON.parse(jsonString);
+//     console.log(parsed)
+//     if (parsed.type === 'key_complete') {
+//       // 如果是 key_complete 类型，设置当前 key 类型，并准备接收后续的 value_chunk
+//       currentKeyType = parsed.key;
+//       // 在新的 key_complete 开始时，添加一个新行，并用粗体显示 key
+//       if (aiMessages.value[currentAiMessageIndex]) {
+//         aiMessages.value[currentAiMessageIndex] += '\n\n';
+//       }
+//       aiMessages.value[currentAiMessageIndex] += `**${parsed.key}:** `;
+//     } else if (parsed.type === 'value_chunk') {
+//       // 如果是 value_chunk 类型，追加内容到当前 AI 消息
+//       // 确保有当前 AI 消息索引并且有 key 类型被设置
+//       if (currentAiMessageIndex !== -1 && currentKeyType) {
+//         // 移除 content 值中的引号
+//         const contentWithoutQuotes = parsed.content.replace(/^"|"$/g, '');
+//         aiMessages.value[currentAiMessageIndex] += contentWithoutQuotes;
+//       }
+//     } else if (parsed.type === 'tool_executed') {
+//       // 如果是 tool_executed 类型，直接显示 observation 的值
+//       if (currentAiMessageIndex !== -1) {
+//         if (aiMessages.value[currentAiMessageIndex]) {
+//           aiMessages.value[currentAiMessageIndex] += '\n\n';
+//         }
+//         aiMessages.value[currentAiMessageIndex] += `**Tool Executed Observation:** \n\n ${parsed.observation}`;
+//       }
+//     }
+//     // 使用 marked.js 渲染 Markdown
+//     aiMessages.value[currentAiMessageIndex] = marked.parse(aiMessages.value[currentAiMessageIndex]);
+//
+//   } catch (e) {
+//     console.error('JSON 解析失败:', jsonString, e);
+//   }
+// };
 
-// 初始化时显示会话ID（可选）
 onMounted(() => {
-  console.log('会话ID:', sessionId.value)
-})
+  console.log('Session ID:', sessionId.value);
+});
 </script>
 
 <style scoped>
+/* Reset some default styles */
+:global(body, html) {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .app {
   position: fixed;
   top: 0;
@@ -407,7 +502,7 @@ onMounted(() => {
   padding: 16px 20px;
   background: #f8f9fa;
   border-bottom: 1px solid #ddd;
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
 }
 
@@ -415,21 +510,52 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  padding-bottom: 80px; /* 为固定的输入框留出空间 */
 }
 
 .message {
   margin-bottom: 12px;
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   word-break: break-word;
-  white-space: pre-wrap; /* 保留换行和空格 */
+  white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 .ai-msg {
-  background: #f3e5f5;
+  background: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  color: #333;
+}
+
+/* Styles for rendered markdown content inside ai-msg */
+.ai-msg :deep(p) {
+  margin: 0 0 8px 0;
+}
+.ai-msg :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.ai-msg :deep(strong) {
   color: #6a1b9a;
 }
+.ai-msg :deep(pre) {
+  background-color: #eef1f3;
+  padding: 12px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ai-msg :deep(code) {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #eef1f3;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.ai-msg :deep(pre code) {
+  padding: 0;
+  background-color: transparent;
+}
+
 
 .user-msg {
   background: #e3f2fd;
@@ -437,17 +563,12 @@ onMounted(() => {
 }
 
 .input-area {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   border-top: 1px solid #ddd;
   background: white;
   padding: 16px 20px;
   display: flex;
   gap: 12px;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.07);
 }
 
 .input-area input {
@@ -461,6 +582,7 @@ onMounted(() => {
 
 .input-area input:focus {
   border-color: #1565c0;
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
 }
 
 .input-area button {
@@ -472,6 +594,7 @@ onMounted(() => {
   font-size: 15px;
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color 0.2s;
 }
 
 .input-area button:hover:not(:disabled) {
@@ -496,4 +619,5 @@ onMounted(() => {
   background: #bbb;
   border-radius: 3px;
 }
+
 </style>

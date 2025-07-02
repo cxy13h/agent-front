@@ -1,5 +1,6 @@
 {'type': 'key_complete', 'key': 'state'}
-{'type': 'value_chunk', 'key': 'state', 'content': '"ThinkTool"'}
+{'type': 'value_chunk', 'key': 'state', 'content': '"Amazing '}
+{'type': 'value_chunk', 'key': 'state', 'content': 'Think Tool"'}
 {'type': 'key_complete', 'key': 'content'}
 {'type': 'value_chunk', 'key': 'content', 'content': '{"ThinkTool":"ThinkPlan","ThinkInput":"用户请求查询数据库，但具体意图不明确。我需要首先获取数据库中的所有'}
 {'type': 'value_chunk', 'key': 'content', 'content': '表名，以便向用户展示可用数据，从而引导用户提出更具体的查询需求。"}'}
@@ -32,4 +33,8 @@
 {'type': 'value_chunk', 'key': 'state', 'content': '"User Interaction Needed"'}
 {'type': 'key_complete', 'key': 'content'}
 {'type': 'value_chunk', 'key': 'content', 'content': '"数据库中有 `orders`、`products` 和 `users` 这几张表。您想查询哪方面的信息？例如：订单信息、产品信息还是用户信息？或者您有特定的查询目标吗？"'}
-{'type': 'waiting_for_user', 'message': '需要用户交互'}
+
+以上每一行都是tryParse接受的参数.
+如果遇到{'type': 'key_complete', 'key': 'state'}，那么应该流式地显示后续所有value_chunk。也就是{'type': 'value_chunk', 'key': 'state', 'content': '"Amazing '}和{'type': 'value_chunk', 'key': 'state', 'content': 'Think Tool"'}中的content的值，即先显示Amazing，再追加显示Think Tool，这就是流式输出。
+如果遇到{'type': 'key_complete', 'key': 'content'}。同理，流式地显示后续所有的value_chunk
+如果遇到tool_excuted，则直接输出observation的值
