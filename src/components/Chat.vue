@@ -2,14 +2,14 @@
   <div class="app">
     <div class="main-content">
       <div class="panel">
-        <div class="panel-header">AI回复</div>
+        <div class="panel-header">AI</div>
         <div class="messages">
           <div v-for="(msg, i) in aiMessages" :key="i" class="message ai-msg" v-html="msg"></div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-header">用户输入</div>
+        <div class="panel-header">用户</div>
         <div class="messages">
           <div v-for="(msg, i) in userMessages" :key="i" class="message user-msg">
             {{ msg }}
@@ -106,7 +106,7 @@ async function sendMessage () {
   currentInput.value = ''
 
   try {
-    const resp = await fetch('http://localhost:5000/api/chat', {
+    const resp = await fetch('http://101.126.145.194:5000/api/chat', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({ message: prompt, session_id: sid }),
