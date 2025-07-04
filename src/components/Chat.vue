@@ -53,7 +53,9 @@ const decode = (str) => {
   let t = str.replace(/\\n/g, '\n')
   if ((t.startsWith('"') && t.endsWith('"')) ||
       (t.startsWith("'") && t.endsWith("'"))) {
-    try { t = JSON.parse(t) } catch {}
+    try {
+      t = t.slice(1, -1)
+    } catch {}
   }
   return t
 }
@@ -69,7 +71,6 @@ function finalizePrev () {
 
 /* 处理一条事件对象 */
 function handleEvt (evt) {
-  console.log(evt)
   const { type } = evt
 
   /* tool_executed ─ 直接插入一条 */
