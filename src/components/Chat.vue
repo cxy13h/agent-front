@@ -50,7 +50,8 @@ let buffer      = ''            // 已收到的 value_chunk
 
 /* 转义 \\n → 换行，并尝试剥掉外围引号 */
 const decode = (str) => {
-  let t = str.replace(/\\n/g, '\n')
+  let t = str.replace(/\\n/g, '\n')     // \n → 换行
+      .replace(/\\"/g, '"');
   if ((t.startsWith('"') && t.endsWith('"')) ||
       (t.startsWith("'") && t.endsWith("'"))) {
     try {
@@ -75,7 +76,7 @@ function handleEvt (evt) {
 
   /* tool_executed ─ 直接插入一条 */
   if (type === 'tool_executed') {
-    const html = marked.parse(`**${evt.tool_name}**：${decode(evt.observation)}`)
+    const html = marked.parse(`**${evt.tool_name}**： \n ${decode(evt.observation)}`)
     aiMessages.value.push(html)
     return
   }
@@ -172,7 +173,6 @@ async function sendMessage () {
 }
 
 .panel {
-  width: 50%;
   display: flex;
   flex-direction: column;
   background: white;
@@ -180,7 +180,12 @@ async function sendMessage () {
 }
 
 .panel:first-child {
+  width: 70%; /* AI回复区域占70% */
   border-right: 1px solid #ddd;
+}
+
+.panel:last-child {
+  width: 30%; /* 用户输入区域占30% */
 }
 
 .panel-header {
@@ -240,7 +245,6 @@ async function sendMessage () {
   padding: 0;
   background-color: transparent;
 }
-
 
 .user-msg {
   background: #e3f2fd;
@@ -304,5 +308,4 @@ async function sendMessage () {
   background: #bbb;
   border-radius: 3px;
 }
-
 </style>
