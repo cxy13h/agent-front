@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import {ref, nextTick, onMounted} from 'vue'
 import { marked } from 'marked'
 
 /* ────── 组件状态 ────── */
@@ -42,11 +42,28 @@ const userMessages = ref([])
 const aiMessages   = ref([])
 const isLoading    = ref(false)
 const sid          = `s_${Date.now()}_${Math.random().toString(36).slice(2,9)}`
-
+const GlobalPrompts = ref('');
 /* ────── 正在累积的块 ────── */
 let activeKey   = null          // 'state' 或 'content'
 let activeIndex = -1            // aiMessages 中的占位下标
 let buffer      = ''            // 已收到的 value_chunk
+
+// onMounted(() => {
+//   const eventSource = new EventSource(`http://localhost:5000/prompts?session_id=${sid}`);
+//
+//   // 监听消息并更新 globalVariable
+//   eventSource.onmessage = (event) => {
+//     GlobalPrompts.value = event.data;
+//     // console.log(event.data);
+//   };
+//
+//   // 错误处理
+//   eventSource.onerror = (error) => {
+//     console.error("EventSource error: ", error);
+//   };
+// });
+
+
 
 /* 转义 \\n → 换行，并尝试剥掉外围引号 */
 const decode = (str) => {
@@ -106,7 +123,7 @@ async function sendMessage () {
   currentInput.value = ''
 
   try {
-    const resp = await fetch('http://101.126.145.194:5000/api/chat', {
+    const resp = await fetch('http://localhost:5000/api/chat', {
       method : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body   : JSON.stringify({ message: prompt, session_id: sid }),
